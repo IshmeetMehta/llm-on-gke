@@ -43,7 +43,7 @@ cpu_pools = [{
 enable_gpu = true
 gpu_pools = [
   {
-    name               = "gpu-pool-l4"
+    name               = "gpu-pool-l4" # Replace with gpu-pool-h100 for high-performance GPUs
     machine_type       = "g2-standard-24"
     node_locations     = "us-central1-a" ## comment to autofill node_location based on cluster_location
     autoscaling        = true
@@ -54,6 +54,6 @@ gpu_pools = [
     enable_gcfs        = true
     logging_variant    = "DEFAULT"
     accelerator_count  = 2
-    accelerator_type   = "nvidia-l4"
+    accelerator_type   = "nvidia-l4" # Replace with nvidia-h100 for high-performance GPUs
     gpu_driver_version = "DEFAULT"
 }]

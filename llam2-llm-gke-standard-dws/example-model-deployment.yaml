@@ -1,0 +1,73 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm-llama2-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: llama2-server
+  template:
+    metadata:
+      labels:
+        app: llama2-server
+        ai.gke.io/model: llama2-70b
+        ai.gke.io/inference-server: vllm
+        examples.ai.gke.io/source: user-guide
+    spec:
+      containers:
+      - name: inference-server
+        image: us-docker.pkg.dev/vertex-ai/vertex-vision-model-garden-dockers/pytorch-vllm-serve:20240220_0936_RC01
+        resources:
+          requests:
+            cpu: "10"
+            memory: "60Gi"
+            ephemeral-storage: "60Gi"
+            nvidia.com/gpu: 2
+          limits:
+            cpu: "10"
+            memory: "60Gi"
+            ephemeral-storage: "60Gi"
+            nvidia.com/gpu: 2 
+        command: ["python3", "-m", "vllm.entrypoints.api_server"]
+        args:
+        - --model=$(MODEL_ID)
+        - --tensor-parallel-size=2
+        env:
+        - name: MODEL_ID
+          value: meta-llama/Llama-2-70b-chat-hf
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: hf-secret
+              key: hf_api_token
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+      volumes:
+      - name: dshm
+        emptyDir:
+            medium: Memory
+      nodeSelector:
+        cloud.google.com/gke-nodepool: pool-1
+      tolerations:
+      - key: "nvidia.com/gpu"
+        operator: "Exists"
+        effect: "NoSchedule"
+      - key: cloud.google.com/gke-queued
+        operator: "Equal"
+        value: "true"
+        effect: "NoSchedule"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-service
+spec:
+  selector:
+    app: llama2-server
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000

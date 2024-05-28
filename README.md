@@ -43,7 +43,23 @@ terraform apply -var-file platform.tfvars
 ```
 
 
-## Applications
+## Calculate GPU requirements
+
+In order to install OpenSource models such as
+[Lllama-2-70b-chat-hf](https://huggingface.co/meta-llama/Llama-2-70b-chat-hf) we need to calculate the GPU requirements.
+
+The amount of GPUs depends on the value of the QUANTIZE flag. In this tutorial, QUANTIZE is set to bitsandbytes-nf4, which means that the model is loaded in 4 bits.
+
+A 70 billion parameter model would require a minimum of 40 GB of GPU memory which equals to 70 billion times 4 bits (70 billion x 4 bits= 35 GB) and considers a 5 GB of overhead. In this case, a single L4 GPU wouldn't have enough memory. Therefore, the examples in this tutorial use two L4 GPU of memory (2 x 24 = 48 GB). This configuration is sufficient for running Falcon 40b or Llama 2 70b in L4 GPUs.
+
+If L4 GPUs are not available or do not meet your performance requirement. Llama2 is known to perform better on H100.Tutorial also provides an example on how to use H100 GPU with [Dynamic Workload Scheduler(DWS)](https://cloud.google.com/blog/products/compute/introducing-dynamic-workload-scheduler)
+
+Please review the section below to check GPU availability and machine sizes and capacity per region.
+
+
+## GPU Capacity and Availability
+
+[Choose GPU support for your region and GKE cluster](https://cloud.google.com/kubernetes-engine/docs/concepts/gpus)
 
 
 ## Important Considerations

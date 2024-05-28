@@ -1,0 +1,74 @@
+apiVersion: v1
+kind: PodTemplate
+metadata:
+  name: chat-model
+  namespace: chat-model
+template:
+  spec:
+    nodeSelector:
+        cloud.google.com/gke-nodepool: pool-1 # Separate nodepool to provision DWS resources on demand
+    tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+    containers:
+        - name: llm 
+          image: ghcr.io/huggingface/text-generation-inference:1.4.3
+          resources:
+            requests:
+              cpu: "10"
+              memory: "60Gi"
+              nvidia.com/gpu: "2"
+            limits:
+              cpu: "10"
+              memory: "60Gi"
+              nvidia.com/gpu: "2"
+          env:
+          - name: MODEL_ID
+            value: meta-llama/Meta-Llama-2-70B 
+          - name: PORT
+            value: "8080"
+          - name: HUGGING_FACE_HUB_TOKEN
+            valueFrom:
+              secretKeyRef:
+                name: <secret-name>
+                key: HUGGING_FACE_TOKEN
+          volumeMounts:
+            - mountPath: /dev/shm
+              name: dshm
+            - mountPath: /data
+              name: ephemeral-volume
+    restartPolicy: Never
+    volumes:
+      - name: dshm
+        emptyDir:
+            medium: Memory
+      - name: ephemeral-volume
+        ephemeral:
+          volumeClaimTemplate:
+            metadata:
+              labels:
+                type: ephemeral
+            spec:
+              accessModes: ["ReadWriteOnce"]
+              storageClassName: "premium-rwo"
+              resources:
+                requests:
+                  storage: 150Gi
+
+
+
+---
+apiVersion: autoscaling.x-k8s.io/v1beta1
+kind: ProvisioningRequest
+metadata:
+  name: chat-model-request
+  namespace: chat-model
+spec:
+  provisioningClassName: queued-provisioning.gke.io
+  parameters:
+    maxRunDurationSeconds: "86400"
+  podSets:
+  - count: 1
+    podTemplateRef:
+      name: chat-model
